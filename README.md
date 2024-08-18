@@ -1,6 +1,7 @@
 # Introduction
 
 This script synchronizes the power state of a primary receiver with one or more secondary receivers. When the primary receiver is turned on/off, the secondaries turn on/off. It will also force synchronize every 10 seconds in case a power state was missed.
+The main purpose of this script is to allow older receivers to be used as amps without needing any special tools or remotes.
 
 Currently, only Onkyo receivers are supported, though support for more could be added.
 
@@ -17,6 +18,10 @@ A config.json in the root of the repository can be modified to configure the scr
         "ip": "192.168.1.80"
     },
     "secondaries": [
+        {
+            "mode": "EISCP",
+            "ip": "192.168.1.81"
+        },
         {
             "mode": "TCP",
             "ip": "192.168.1.235",
