@@ -70,7 +70,7 @@ class ReceiverConnection:
                     message = self.get_message()
                     if self.message_callback:
                         self.message_callback(message)
-            except ConnectionResetError:
+            except socket.error:
                 self._disconnect()
 
     def check_for_message(self):
@@ -115,7 +115,7 @@ class ReceiverConnection:
         message = self._prep_message_for_receiver(message)
         try:
             self._send_message_to_receiver(message)
-        except ConnectionResetError:
+        except socket.error:
             self.logger.debug("not connected to receiver, trying again")
             time.sleep(1)
             self._disconnect()
