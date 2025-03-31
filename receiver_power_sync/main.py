@@ -7,7 +7,7 @@ import time
 
 from .config import get_config
 from .constants import LOG_LEVEL
-from .service import ReceiverSyncService
+from .service import ReceiverConnection, ReceiverSyncService
 
 
 def init_logging():
@@ -34,20 +34,27 @@ def main_loop():
 
     with ReceiverSyncService(logger, config) as eiscp_sync:
 
-        listener_threads = []
+        listener_threads: dict[ReceiverConnection, threading.Thread] = {}
 
         for listener in eiscp_sync.listeners:
             listener_thread = threading.Thread(target=listener.listen_forever)
-            listener_thread.daemon = True
             listener_thread.start()
-            listener_threads.append(listener_thread)
+            listener_threads[listener] = listener_thread
 
         count = 0
 
         while True:
+            # sleep for a fraction of the time so we catch interrupts
             time.sleep(0.1)
             count += 1
             if count == 100:
                 count = 0
                 # ensure receivers are in sync once about every 10 seconds
+                for listener, listener_thread in listener_threads.items():
+                    if not listener_thread.is_alive():
+                        listener.disconnect()
+                        listener_thread = threading.Thread(target=listener.listen_forever)
+                        listener_thread.start()
+                        listener_threads[listener] = listener_thread
+
                 eiscp_sync.send_pwr_question_to_primary()

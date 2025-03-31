@@ -2,6 +2,7 @@
 
 import select
 import socket
+import threading
 import time
 from logging import DEBUG, WARNING, Logger
 from typing import List, Optional
@@ -13,7 +14,7 @@ from .constants import PORT
 from .eiscp import build_eiscp_packet, extract_eiscp_header
 
 
-class ConnectionClosedException(Exception):
+class ConnectionClosedException(socket.error):
     """raised when connection is closed"""
 
 
@@ -43,7 +44,7 @@ class ReceiverConnection:
         self.message_callback = message_callback
 
     def __exit__(self, _type, value, traceback):
-        self._disconnect()
+        self.disconnect()
 
     def __enter__(self):
         return self
@@ -51,17 +52,21 @@ class ReceiverConnection:
     def _connect_to_receiver(self):
         raise NotImplementedError("implement in subclass")
 
-    def _disconnect(self):
+    def disconnect(self):
+        """implement in subclass"""
         raise NotImplementedError("implement in subclass")
 
     def listen_forever(self):
         """listens for ISCP messages from receiver"""
 
         while True:
+            if not threading.main_thread().is_alive():
+                self.disconnect()
+                break
             if not self.connected:
                 try:
                     self._connect_to_receiver()
-                except Exception:  # pylint: disable = broad-exception-caught
+                except socket.error:
                     time.sleep(1)
                     continue
             try:
@@ -71,7 +76,7 @@ class ReceiverConnection:
                     if self.message_callback:
                         self.message_callback(message)
             except socket.error:
-                self._disconnect()
+                self.disconnect()
 
     def check_for_message(self):
         """checks for messages"""
@@ -86,7 +91,7 @@ class ReceiverConnection:
             data = self._get_one_byte()
             if not data:
                 raise ConnectionResetError("connection closed")
-            if data in (b"\r", b"\n", b"\x1A"):
+            if data in (b"\r", b"\n", b"\x1a"):
                 if found_message:
                     terminated = True
                     break
@@ -118,7 +123,7 @@ class ReceiverConnection:
         except socket.error:
             self.logger.debug("not connected to receiver, trying again")
             time.sleep(1)
-            self._disconnect()
+            self.disconnect()
             self._connect_to_receiver()
             self._send_message_to_receiver(message)
 
@@ -147,11 +152,14 @@ class EiscpConnection(ReceiverConnection):
 
         self.connected = True
 
-    def _disconnect(self):
+    def disconnect(self):
         """disconnects from the receiver"""
         if self.connected:
-            self.sock.shutdown(socket.SHUT_RDWR)
-            self.sock.close()
+            try:
+                self.sock.shutdown(socket.SHUT_RDWR)
+                self.sock.close()
+            except socket.error:
+                pass
             self.sock = None
             self.connected = False
             self.logger.info("disconnected from receiver")
@@ -189,7 +197,7 @@ class EiscpConnection(ReceiverConnection):
             self.logger.debug("request did not contain data segment")
             return
 
-        while message.endswith(b"\r") or message.endswith(b"\n") or message.endswith(b"\x1A"):
+        while message.endswith(b"\r") or message.endswith(b"\n") or message.endswith(b"\x1a"):
             message = message[:-1]
 
         self.logger.debug("request message was %s", message)
@@ -232,13 +240,16 @@ class IscpTcpConnection(ReceiverConnection):
         return self
 
     def __exit__(self, _type, value, traceback):
-        self._disconnect()
+        self.disconnect()
 
-    def _disconnect(self):
+    def disconnect(self):
         """disconnects from the receiver"""
         if self.connected:
-            self.sock.shutdown(socket.SHUT_RDWR)
-            self.sock.close()
+            try:
+                self.sock.shutdown(socket.SHUT_RDWR)
+                self.sock.close()
+            except socket.error:
+                pass
             self.sock = None
             self.connected = False
             self.logger.info("disconnected from receiver")
@@ -284,12 +295,15 @@ class IscpSerialConnection(ReceiverConnection):
         return self
 
     def __exit__(self, _type, value, traceback):
-        self._disconnect()
+        self.disconnect()
 
-    def _disconnect(self):
+    def disconnect(self):
         """disconnects from the receiver"""
         if self.connected and self.ser.is_open:
-            self.ser.close()
+            try:
+                self.ser.close()
+            except socket.error:
+                pass
             self.logger.info("disconnected from receiver")
 
     def __init__(self, logger: Logger, rec_config: ReceiverConfig, message_callback: Optional[callable]):
@@ -347,7 +361,7 @@ class ReceiverSyncService:
 
     def __exit__(self, _type, value, traceback):
         for listener in self.listeners:
-            listener._disconnect()
+            listener.disconnect()
 
     def __init__(self, logger: Logger, config: Config):
         self.logger = logger
