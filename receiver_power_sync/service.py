@@ -380,4 +380,7 @@ class ReceiverSyncService:
         if message.startswith(b"!1PWR"):
             self.logger.debug(f"relaying power message {message}")
             for listener in self.listeners[1:]:
-                listener.send_message_to_receiver(message)
+                try:
+                    listener.send_message_to_receiver(message)
+                except socket.error:
+                    self.logger.exception("Unable to send message to a secondary")
