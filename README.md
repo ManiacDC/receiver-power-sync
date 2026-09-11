@@ -70,6 +70,30 @@ If you also want to install tools for development:
 This is designed to be run as a module, so from the root of the repository, you should run:
 `python -m receiver_power_sync`
 
+# Docker
+
+A Docker image can be built from this repository and the config file can be supplied at runtime via a bind mount or by setting `RPS_CONFIG_PATH`.
+
+Example `docker-compose.yml`:
+
+```yaml
+services:
+  receiver-power-sync:
+    build: .
+    restart: unless-stopped
+    environment:
+      RPS_CONFIG_PATH: /config/config.json
+    volumes:
+      - ./config.json:/config/config.json:ro
+```
+
+If you need access to a serial device in Serial mode, add a device mapping such as:
+
+```yaml
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0
+```
+
 # Running as a service
 
 ## Linux
@@ -86,7 +110,7 @@ Basically:
  * Check that it's running: `systemctl status receiver_power_sync`
 
 
-I used miniconda to install python, and created a python 3.12 environment. My `receiver_power_sync.service` file looks something like this:
+I used miniconda to install python, and created a python 3.14 environment. My `receiver_power_sync.service` file looks something like this:
 
 ```
 [Unit]
@@ -106,4 +130,4 @@ WantedBy=multi-user.target
 
 ## Windows
 
-I would recommend setting up the service using [nssm](https://nssm.cc). I would recommend setting up a miniconda environment with python 3.12 and using that to run the script.
+I would recommend setting up the service using [nssm](https://nssm.cc). I would recommend setting up a miniconda environment with python 3.14 and using that to run the script.

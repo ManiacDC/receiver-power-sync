@@ -3,4 +3,4 @@
 from logging import DEBUG, INFO, WARNING
 
 PORT = 60128
-LOG_LEVEL = INFO
+LOG_LEVEL = DEBUG

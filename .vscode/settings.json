@@ -15,5 +15,7 @@
     "python.testing.pytestEnabled": true,
     "autoDocstring.docstringFormat": "one-line-sphinx",
     "pylint.importStrategy": "fromEnvironment",
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "python-envs.defaultEnvManager": "ms-python.python:conda",
+    "python-envs.defaultPackageManager": "ms-python.python:conda"
 }

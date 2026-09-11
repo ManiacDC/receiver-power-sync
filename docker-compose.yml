@@ -1,0 +1,12 @@
+services:
+  receiver-power-sync:
+    build: .
+    container_name: receiver-power-sync
+    restart: unless-stopped
+    environment:
+      RPS_CONFIG_PATH: /config/config.json
+    volumes:
+      - ./config.json:/config/config.json:ro
+    # Uncomment and adjust if using Serial mode:
+    # devices:
+    #   - /dev/ttyUSB0:/dev/ttyUSB0
