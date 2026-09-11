@@ -1,6 +1,6 @@
 services:
   receiver-power-sync:
-    build: .
+    image: maniacdc/receiver-power-sync:latest
     container_name: receiver-power-sync
     restart: unless-stopped
     environment:

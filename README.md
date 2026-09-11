@@ -79,7 +79,7 @@ Example `docker-compose.yml`:
 ```yaml
 services:
   receiver-power-sync:
-    build: .
+    image: maniacdc/receiver-power-sync:latest
     restart: unless-stopped
     environment:
       RPS_CONFIG_PATH: /config/config.json
